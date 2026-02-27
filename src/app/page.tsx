@@ -13,12 +13,10 @@ export default function HomePage() {
 
     const handleCreate = async () => {
         if (!playerName.trim()) { setError('กรุณาใส่ชื่อของคุณ'); return; }
-        setLoading(true);
-        setError('');
+        setLoading(true); setError('');
         try {
             const res = await fetch('/api/rooms/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playerName: playerName.trim() }),
             });
             const data = await res.json();
@@ -36,12 +34,10 @@ export default function HomePage() {
     const handleJoin = async () => {
         if (!playerName.trim()) { setError('กรุณาใส่ชื่อของคุณ'); return; }
         if (!roomCode.trim()) { setError('กรุณาใส่รหัสห้อง'); return; }
-        setLoading(true);
-        setError('');
+        setLoading(true); setError('');
         try {
             const res = await fetch('/api/rooms/join', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playerName: playerName.trim(), roomCode: roomCode.trim().toUpperCase() }),
             });
             const data = await res.json();
@@ -57,74 +53,48 @@ export default function HomePage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 relative overflow-hidden">
-            {/* Animated background blobs */}
-            <div
-                style={{
-                    position: 'fixed', top: '-20%', left: '-20%', width: '60%', height: '60%',
-                    background: 'radial-gradient(circle, rgba(255,45,120,0.15) 0%, transparent 70%)',
-                    animation: 'bg-drift 15s ease-in-out infinite',
-                    pointerEvents: 'none',
-                }}
-            />
-            <div
-                style={{
-                    position: 'fixed', bottom: '-20%', right: '-20%', width: '60%', height: '60%',
-                    background: 'radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)',
-                    animation: 'bg-drift 20s ease-in-out infinite reverse',
-                    pointerEvents: 'none',
-                }}
-            />
-            <div
-                style={{
-                    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-                    width: '40%', height: '40%',
-                    background: 'radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)',
-                    animation: 'bg-drift 25s ease-in-out infinite',
-                    pointerEvents: 'none',
-                }}
-            />
+        <div className="min-h-dvh flex flex-col items-center justify-center px-5 py-10 relative">
+            {/* Ambient */}
+            <div className="ambient-bg">
+                <div className="ambient-blob" />
+                <div className="ambient-blob" />
+                <div className="ambient-blob" />
+            </div>
 
             <div className="relative z-10 w-full max-w-sm">
-                {/* Header */}
-                <div className="text-center mb-10 float" style={{ animation: 'float 3s ease-in-out infinite' }}>
-                    <div className="text-7xl mb-4">🤫</div>
-                    <h1
-                        className="text-5xl font-bold leading-tight"
-                        style={{
-                            fontFamily: 'Bangers, cursive',
-                            letterSpacing: '0.05em',
-                            color: '#fff',
-                            textShadow: '0 0 30px rgba(255,45,120,0.6), 0 4px 0 rgba(0,0,0,0.5)',
-                        }}
-                    >
+                {/* Logo */}
+                <div className="text-center mb-10">
+                    <div className="text-6xl mb-5 float" style={{ animationDuration: '2.5s' }}>🤫</div>
+                    <h1 className="game-title mb-3">
                         Don&apos;t Say<br />
-                        <span style={{ color: '#ff2d78', textShadow: '0 0 40px rgba(255,45,120,0.9), 0 4px 0 rgba(0,0,0,0.5)' }}>
-                            the Word!!!
-                        </span>
+                        <span className="accent">the Word!!!</span>
                     </h1>
-                    <p className="mt-3 text-white/60 text-sm font-body">
-                        เกมปาร์ตี้สุดฮา — อย่าพูดคำต้องห้าม!
-                    </p>
+                    <p className="game-subtitle">เกมปาร์ตี้สุดฮา — อย่าพูดคำต้องห้าม!</p>
                 </div>
 
-                {/* Cards */}
+                {/* Home Actions */}
                 {mode === 'home' && (
-                    <div className="space-y-4 pop-in">
+                    <div className="space-y-3 pop-in">
                         <button id="btn-create-room" className="btn-primary" onClick={() => setMode('create')}>
-                            🎮 สร้างห้องใหม่
+                            🎮&nbsp; สร้างห้องใหม่
                         </button>
                         <button id="btn-join-room" className="btn-secondary" onClick={() => setMode('join')}>
-                            🚀 เข้าร่วมห้อง
+                            🚀&nbsp; เข้าร่วมห้อง
                         </button>
+                        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-tertiary)' }}>
+                            เล่นบนมือถือได้เลย 📱
+                        </p>
                     </div>
                 )}
 
+                {/* Create Room */}
                 {mode === 'create' && (
-                    <div className="glass-card p-6 space-y-4 pop-in">
-                        <h2 className="text-xl font-bold text-center">สร้างห้องใหม่</h2>
-                        <div>
-                            <label className="block text-sm text-white/60 mb-2">ชื่อของคุณ</label>
+                    <div className="glass-elevated p-6 pop-in">
+                        <h2 className="text-lg font-bold text-center mb-5">สร้างห้องใหม่</h2>
+                        <div className="mb-4">
+                            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                                ชื่อของคุณ
+                            </label>
                             <input
                                 id="input-player-name-create"
                                 className="input-field"
@@ -136,57 +106,77 @@ export default function HomePage() {
                                 autoFocus
                             />
                         </div>
-                        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-                        <button id="btn-confirm-create" className="btn-primary" onClick={handleCreate} disabled={loading}>
-                            {loading ? '⏳ กำลังสร้างห้อง...' : '✨ สร้างห้อง'}
-                        </button>
-                        <button className="btn-secondary" onClick={() => { setMode('home'); setError(''); }}>
-                            ← กลับ
-                        </button>
+                        {error && (
+                            <p className="text-sm text-center mb-3 py-2 px-3 rounded-xl"
+                                style={{ background: 'rgba(255,45,120,0.1)', color: 'var(--pink)' }}>
+                                {error}
+                            </p>
+                        )}
+                        <div className="space-y-2">
+                            <button id="btn-confirm-create" className="btn-primary" onClick={handleCreate} disabled={loading}>
+                                {loading ? '⏳ กำลังสร้าง...' : '✨ สร้างห้อง'}
+                            </button>
+                            <button className="btn-secondary" onClick={() => { setMode('home'); setError(''); }}>
+                                ← กลับ
+                            </button>
+                        </div>
                     </div>
                 )}
 
+                {/* Join Room */}
                 {mode === 'join' && (
-                    <div className="glass-card p-6 space-y-4 pop-in">
-                        <h2 className="text-xl font-bold text-center">เข้าร่วมห้อง</h2>
-                        <div>
-                            <label className="block text-sm text-white/60 mb-2">ชื่อของคุณ</label>
-                            <input
-                                id="input-player-name-join"
-                                className="input-field"
-                                placeholder="ใส่ชื่อเล่นของคุณ..."
-                                value={playerName}
-                                onChange={e => setPlayerName(e.target.value)}
-                                maxLength={20}
-                                autoFocus
-                            />
+                    <div className="glass-elevated p-6 pop-in">
+                        <h2 className="text-lg font-bold text-center mb-5">เข้าร่วมห้อง</h2>
+                        <div className="space-y-4 mb-4">
+                            <div>
+                                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                                    ชื่อของคุณ
+                                </label>
+                                <input
+                                    id="input-player-name-join"
+                                    className="input-field"
+                                    placeholder="ใส่ชื่อเล่นของคุณ..."
+                                    value={playerName}
+                                    onChange={e => setPlayerName(e.target.value)}
+                                    maxLength={20}
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                                    รหัสห้อง
+                                </label>
+                                <input
+                                    id="input-room-code"
+                                    className="input-field"
+                                    placeholder="เช่น AB2X"
+                                    value={roomCode}
+                                    onChange={e => setRoomCode(e.target.value.toUpperCase())}
+                                    onKeyDown={e => e.key === 'Enter' && handleJoin()}
+                                    maxLength={4}
+                                    style={{
+                                        letterSpacing: '0.3em', fontSize: '1.6rem', textAlign: 'center',
+                                        fontFamily: 'Bangers, cursive', padding: '0.75rem',
+                                    }}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm text-white/60 mb-2">รหัสห้อง</label>
-                            <input
-                                id="input-room-code"
-                                className="input-field"
-                                placeholder="เช่น AB2X"
-                                value={roomCode}
-                                onChange={e => setRoomCode(e.target.value.toUpperCase())}
-                                onKeyDown={e => e.key === 'Enter' && handleJoin()}
-                                maxLength={4}
-                                style={{ letterSpacing: '0.2em', fontSize: '1.5rem', textAlign: 'center', fontFamily: 'Bangers, cursive' }}
-                            />
+                        {error && (
+                            <p className="text-sm text-center mb-3 py-2 px-3 rounded-xl"
+                                style={{ background: 'rgba(255,45,120,0.1)', color: 'var(--pink)' }}>
+                                {error}
+                            </p>
+                        )}
+                        <div className="space-y-2">
+                            <button id="btn-confirm-join" className="btn-primary" onClick={handleJoin} disabled={loading}>
+                                {loading ? '⏳ กำลังเข้าร่วม...' : '🚀 เข้าร่วมห้อง'}
+                            </button>
+                            <button className="btn-secondary" onClick={() => { setMode('home'); setError(''); }}>
+                                ← กลับ
+                            </button>
                         </div>
-                        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-                        <button id="btn-confirm-join" className="btn-primary" onClick={handleJoin} disabled={loading}>
-                            {loading ? '⏳ กำลังเข้าร่วม...' : '🚀 เข้าร่วมห้อง'}
-                        </button>
-                        <button className="btn-secondary" onClick={() => { setMode('home'); setError(''); }}>
-                            ← กลับ
-                        </button>
                     </div>
                 )}
-
-                <p className="text-center text-white/30 text-xs mt-8">
-                    เล่นบนมือถือได้เลย 📱
-                </p>
             </div>
         </div>
     );
