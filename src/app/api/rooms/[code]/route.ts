@@ -6,20 +6,20 @@ import Ably from 'ably';
 const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
 
 // GET room state
-export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
     const { code } = await params;
-    const room = getRoom(code);
+    const room = await getRoom(code);
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     return NextResponse.json({ room });
 }
 
-// POST actions: start | catch
+// POST actions: start | catch | honk
 export async function POST(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
     const { code } = await params;
     const body = await req.json();
     const { action, playerId } = body;
 
-    const room = getRoom(code);
+    const room = await getRoom(code);
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
     const channel = ably.channels.get(`room:${code.toUpperCase()}`);
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
         const playerIds = Object.keys(room.players);
         const words = assignWords(playerIds);
-        const updatedRoom = startGame(code, words);
+        const updatedRoom = await startGame(code, words);
 
         await channel.publish('game-started', { room: updatedRoom });
         return NextResponse.json({ room: updatedRoom });
@@ -53,9 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
             return NextResponse.json({ error: 'Player not found or already eliminated' }, { status: 400 });
         }
 
-        const updatedRoom = eliminatePlayer(code, targetId);
-
-        // Check if game should end (only 1 non-eliminated player left)
+        const updatedRoom = await eliminatePlayer(code, targetId);
         const activePlayers = Object.values(updatedRoom!.players).filter(p => !p.isEliminated);
         const gameEnded = activePlayers.length <= 1;
 

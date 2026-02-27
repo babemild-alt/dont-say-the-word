@@ -1,29 +1,25 @@
+import { Redis } from '@upstash/redis';
 import { Room } from './types';
 
-// Store rooms on the global object so they survive Next.js HMR hot reloads in dev
-// and persist correctly within a single Vercel serverless function instance
-declare global {
-    // eslint-disable-next-line no-var
-    var __roomStore: Map<string, Room> | undefined;
-}
+// Upstash Redis client — works on Vercel serverless and edge functions
+// Falls back gracefully for local dev if env vars aren't set
+let redis: Redis | null = null;
 
-if (!global.__roomStore) {
-    global.__roomStore = new Map<string, Room>();
-}
-
-const rooms = global.__roomStore;
-
-// Clean up rooms older than 4 hours
-const ROOM_TTL = 4 * 60 * 60 * 1000;
-
-function cleanup() {
-    const now = Date.now();
-    for (const [code, room] of rooms.entries()) {
-        if (now - room.createdAt > ROOM_TTL) {
-            rooms.delete(code);
+function getRedis(): Redis {
+    if (!redis) {
+        if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+            throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set');
         }
+        redis = new Redis({
+            url: process.env.UPSTASH_REDIS_REST_URL,
+            token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
     }
+    return redis;
 }
+
+const ROOM_TTL_SECONDS = 4 * 60 * 60; // 4 hours
+const roomKey = (code: string) => `room:${code.toUpperCase()}`;
 
 export function generateRoomCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -31,11 +27,10 @@ export function generateRoomCode(): string {
     for (let i = 0; i < 4; i++) {
         code += chars[Math.floor(Math.random() * chars.length)];
     }
-    return rooms.has(code) ? generateRoomCode() : code;
+    return code;
 }
 
-export function createRoom(hostId: string, hostName: string): Room {
-    cleanup();
+export async function createRoom(hostId: string, hostName: string): Promise<Room> {
     const code = generateRoomCode();
     const room: Room = {
         code,
@@ -53,23 +48,25 @@ export function createRoom(hostId: string, hostName: string): Room {
         words: {},
         createdAt: Date.now(),
     };
-    rooms.set(code, room);
+    await getRedis().set(roomKey(code), JSON.stringify(room), { ex: ROOM_TTL_SECONDS });
     return room;
 }
 
-export function getRoom(code: string): Room | undefined {
-    return rooms.get(code.toUpperCase());
+export async function getRoom(code: string): Promise<Room | null> {
+    const data = await getRedis().get<string>(roomKey(code));
+    if (!data) return null;
+    return typeof data === 'string' ? JSON.parse(data) : data as Room;
 }
 
-export function updateRoom(code: string, updater: (room: Room) => Room): Room | null {
-    const room = rooms.get(code.toUpperCase());
+export async function updateRoom(code: string, updater: (room: Room) => Room): Promise<Room | null> {
+    const room = await getRoom(code);
     if (!room) return null;
     const updated = updater({ ...room, players: { ...room.players }, words: { ...room.words } });
-    rooms.set(code.toUpperCase(), updated);
+    await getRedis().set(roomKey(code), JSON.stringify(updated), { ex: ROOM_TTL_SECONDS });
     return updated;
 }
 
-export function addPlayer(code: string, playerId: string, playerName: string): Room | null {
+export async function addPlayer(code: string, playerId: string, playerName: string): Promise<Room | null> {
     return updateRoom(code, (room) => ({
         ...room,
         players: {
@@ -85,7 +82,7 @@ export function addPlayer(code: string, playerId: string, playerName: string): R
     }));
 }
 
-export function eliminatePlayer(code: string, targetId: string): Room | null {
+export async function eliminatePlayer(code: string, targetId: string): Promise<Room | null> {
     return updateRoom(code, (room) => ({
         ...room,
         players: {
@@ -98,7 +95,7 @@ export function eliminatePlayer(code: string, targetId: string): Room | null {
     }));
 }
 
-export function startGame(code: string, words: Record<string, string>): Room | null {
+export async function startGame(code: string, words: Record<string, string>): Promise<Room | null> {
     return updateRoom(code, (room) => ({
         ...room,
         status: 'playing',

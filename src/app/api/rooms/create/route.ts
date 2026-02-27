@@ -13,9 +13,8 @@ export async function POST(req: NextRequest) {
         }
 
         const playerId = uuidv4();
-        const room = createRoom(playerId, playerName.trim());
+        const room = await createRoom(playerId, playerName.trim());
 
-        // Issue an Ably token for this player
         const tokenRequest = await ably.auth.createTokenRequest({
             clientId: playerId,
             capability: { [`room:${room.code}`]: ['subscribe', 'publish', 'presence'] },
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ room, playerId, tokenRequest });
     } catch (e) {
-        console.error(e);
+        console.error('[create]', e);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

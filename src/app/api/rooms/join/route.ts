@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
         }
 
         const code = roomCode.trim().toUpperCase();
-        const room = getRoom(code);
+        const room = await getRoom(code);
         if (!room) {
             return NextResponse.json({ error: 'Room not found' }, { status: 404 });
         }
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         }
 
         const playerId = uuidv4();
-        const updatedRoom = addPlayer(code, playerId, playerName.trim());
+        const updatedRoom = await addPlayer(code, playerId, playerName.trim());
 
         const tokenRequest = await ably.auth.createTokenRequest({
             clientId: playerId,
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ room: updatedRoom, playerId, tokenRequest });
     } catch (e) {
-        console.error(e);
+        console.error('[join]', e);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
