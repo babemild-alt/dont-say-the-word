@@ -1,8 +1,17 @@
 import { Room } from './types';
 
-// In-memory store for rooms
-// Works for single-instance deployments; for multi-instance Vercel, use Redis
-const rooms = new Map<string, Room>();
+// Store rooms on the global object so they survive Next.js HMR hot reloads in dev
+// and persist correctly within a single Vercel serverless function instance
+declare global {
+    // eslint-disable-next-line no-var
+    var __roomStore: Map<string, Room> | undefined;
+}
+
+if (!global.__roomStore) {
+    global.__roomStore = new Map<string, Room>();
+}
+
+const rooms = global.__roomStore;
 
 // Clean up rooms older than 4 hours
 const ROOM_TTL = 4 * 60 * 60 * 1000;
