@@ -1,6 +1,3 @@
 {
-    "version": 2,
-    "env": {
-        "ABLY_API_KEY": "@ably-api-key"
-    }
+    "version": 2
 }

@@ -61,11 +61,21 @@ export default function LobbyPage() {
         return () => { channel.detach(); client.close(); };
     }, [code, fetchRoom, router]);
 
-    // Poll room state every 3s as a fallback
+    // Poll room state every 3s as a fallback — also redirect if game started
     useEffect(() => {
-        const interval = setInterval(fetchRoom, 3000);
+        const interval = setInterval(async () => {
+            const res = await fetch(`/api/rooms/${code}`);
+            if (res.ok) {
+                const data = await res.json();
+                setRoom(data.room);
+                // If game started and we're still on lobby, redirect
+                if (data.room.status === 'playing') {
+                    router.push(`/room/${code}/game`);
+                }
+            }
+        }, 3000);
         return () => clearInterval(interval);
-    }, [fetchRoom]);
+    }, [code, router]);
 
     const handleStart = async () => {
         setStarting(true);
