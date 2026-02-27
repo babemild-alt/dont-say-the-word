@@ -22,7 +22,56 @@ function playDrumroll(r: React.MutableRefObject<AudioContext | null>) {
     try { const c = getCtx(r), n = c.currentTime; for (let i = 0; i < 20; i++) { const t = n + i * .055, b = c.createBuffer(1, c.sampleRate * .08, c.sampleRate), d = b.getChannelData(0); for (let j = 0; j < d.length; j++)d[j] = (Math.random() * 2 - 1) * Math.exp(-j / (c.sampleRate * .04)); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; s.connect(g); g.connect(c.destination); g.gain.setValueAtTime(.25, t); s.start(t); } const ct = n + 1.15, cb = c.createBuffer(1, c.sampleRate * 1.2, c.sampleRate), cd = cb.getChannelData(0); for (let j = 0; j < cd.length; j++)cd[j] = (Math.random() * 2 - 1) * Math.exp(-j / (c.sampleRate * .5)); const cs = c.createBufferSource(), cg = c.createGain(), hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000; cs.buffer = cb; cs.connect(hp); hp.connect(cg); cg.connect(c.destination); cg.gain.setValueAtTime(.6, ct); cg.gain.exponentialRampToValueAtTime(.001, ct + 1.2); cs.start(ct); } catch { }
 }
 function playFart(r: React.MutableRefObject<AudioContext | null>) {
-    try { const c = getCtx(r), n = c.currentTime, b = c.createBuffer(1, c.sampleRate * .45, c.sampleRate), d = b.getChannelData(0); for (let j = 0; j < d.length; j++) { const t = j / c.sampleRate; d[j] = (Math.random() * 2 - 1) * .4 * Math.sin(2 * Math.PI * (80 + 40 * Math.sin(t * 15)) * t) * Math.exp(-t * 5); } const s = c.createBufferSource(), g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; s.buffer = b; s.connect(lp); lp.connect(g); g.connect(c.destination); g.gain.setValueAtTime(1.2, n); s.start(n); } catch { }
+    try {
+        const c = getCtx(r), n = c.currentTime;
+        const dur = 0.8; // Longer duration
+        const osc1 = c.createOscillator();
+        const osc2 = c.createOscillator();
+        const noise = c.createBufferSource();
+        const g = c.createGain();
+        const filter = c.createBiquadFilter();
+
+        // Noise buffer
+        const b = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = b.getChannelData(0);
+        for (let j = 0; j < d.length; j++) {
+            const t = j / c.sampleRate;
+            d[j] = (Math.random() * 2 - 1) * Math.exp(-t * 4); // Noise decay
+        }
+        noise.buffer = b;
+        noise.loop = true;
+
+        // Fart body (Oscillator 1)
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(60, n);
+        osc1.frequency.exponentialRampToValueAtTime(10, n + dur);
+
+        // Fart resonance/squeak (Oscillator 2)
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(150, n);
+        osc2.frequency.exponentialRampToValueAtTime(40, n + dur * 0.5);
+
+        // Filter to shape the sound
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, n);
+        filter.frequency.exponentialRampToValueAtTime(100, n + dur);
+        filter.Q.value = 5;
+
+        // Gain envelope for loud punch and decay
+        g.gain.setValueAtTime(0, n);
+        g.gain.linearRampToValueAtTime(2.5, n + 0.05); // Very loud attack
+        g.gain.exponentialRampToValueAtTime(0.01, n + dur);
+
+        // Connections
+        osc1.connect(filter);
+        osc2.connect(filter);
+        noise.connect(filter);
+        filter.connect(g);
+        g.connect(c.destination);
+
+        osc1.start(n); osc1.stop(n + dur);
+        osc2.start(n); osc2.stop(n + dur);
+        noise.start(n); noise.stop(n + dur);
+    } catch { }
 }
 function playLaser(r: React.MutableRefObject<AudioContext | null>) {
     try { const c = getCtx(r), n = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.type = 'square'; o.frequency.setValueAtTime(1800, n); o.frequency.exponentialRampToValueAtTime(120, n + .4); g.gain.setValueAtTime(.4, n); g.gain.exponentialRampToValueAtTime(.001, n + .45); o.start(n); o.stop(n + .45); } catch { }
