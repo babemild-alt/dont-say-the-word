@@ -36,6 +36,13 @@ export default function LobbyPage() {
         });
         const channel = client.channels.get(`room:${code}`);
         channel.subscribe('player-joined', (msg) => setRoom(msg.data.room));
+        channel.subscribe('player-left', (msg) => {
+            if (msg.data.leftId !== pid) setRoom(msg.data.room);
+        });
+        channel.subscribe('room-closed', () => {
+            alert('ห้องถูกปิดแล้ว (Host ออก)');
+            router.push('/');
+        });
         channel.subscribe('game-started', (msg) => { setRoom(msg.data.room); setTimeout(() => router.push(`/room/${code}/game`), 200); });
         channel.presence.subscribe(() => fetchRoom());
         channel.presence.enter({ name: sessionStorage.getItem('playerName') });
@@ -53,6 +60,16 @@ export default function LobbyPage() {
         }, 3000);
         return () => clearInterval(interval);
     }, [code, router]);
+
+    const [quitting, setQuitting] = useState(false);
+    const handleQuit = async () => {
+        setQuitting(true);
+        await fetch(`/api/rooms/${code}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'leave', playerId }),
+        });
+        router.push('/');
+    };
 
     const handleStart = async () => {
         setStarting(true);
@@ -123,23 +140,28 @@ export default function LobbyPage() {
 
                 {/* Actions */}
                 <div className="slide-up" style={{ animationDelay: '200ms' }}>
-                    {isHost ? (
-                        <div>
-                            {players.length < 2 && (
-                                <p className="text-xs text-center mb-3 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                                    ต้องมีอย่างน้อย 2 คนจึงจะเริ่มได้
-                                </p>
-                            )}
-                            <button className="btn-primary" onClick={handleStart} disabled={players.length < 2 || starting}>
-                                {starting ? '⏳ กำลังเริ่ม...' : '🎮 เริ่มเกม!'}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="card-yellow p-5 text-center">
-                            <div className="text-3xl mb-1 float" style={{ animationDuration: '2s' }}>⏳</div>
-                            <p className="font-bold text-sm" style={{ color: 'var(--text-on-yellow)' }}>รอเจ้าของห้องเริ่มเกม...</p>
-                        </div>
-                    )}
+                    <div className="space-y-3">
+                        {isHost ? (
+                            <>
+                                {players.length < 2 && (
+                                    <p className="text-xs text-center font-semibold" style={{ color: 'var(--text-tertiary)' }}>
+                                        ต้องมีอย่างน้อย 2 คนจึงจะเริ่มได้
+                                    </p>
+                                )}
+                                <button className="btn-primary" onClick={handleStart} disabled={players.length < 2 || starting}>
+                                    {starting ? '⏳ กำลังเริ่ม...' : '🎮 เริ่มเกม!'}
+                                </button>
+                            </>
+                        ) : (
+                            <div className="card-yellow p-5 text-center">
+                                <div className="text-3xl mb-1 float" style={{ animationDuration: '2s' }}>⏳</div>
+                                <p className="font-bold text-sm" style={{ color: 'var(--text-on-yellow)' }}>รอเจ้าของห้องเริ่มเกม...</p>
+                            </div>
+                        )}
+                        <button className="btn-secondary" style={{ padding: '0.75rem', fontSize: '0.9rem' }} onClick={handleQuit} disabled={quitting}>
+                            {quitting ? '⏳ ออกจากห้อง...' : '🚪 ออกจากห้อง (กลับหน้าแรก)'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

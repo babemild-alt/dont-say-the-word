@@ -165,6 +165,13 @@ export default function GamePage() {
         });
         ch.subscribe('game-started', (msg) => setRoom(msg.data.room));
         ch.subscribe('room-reset', (msg) => { setRoom(msg.data.room); setWinner(null); setEliminated(false); router.push(`/room/${code}/lobby`); });
+        ch.subscribe('player-left', (msg) => {
+            if (msg.data.leftId !== pid) setRoom(msg.data.room);
+        });
+        ch.subscribe('room-closed', () => {
+            alert('ห้องถูกปิดแล้ว (Host ออก) หรือไม่มีผู้เล่นเหลืออยู่');
+            router.push('/');
+        });
 
         return () => { ch.detach(); client.close(); };
     }, [code, fetchRoom, router]);
@@ -189,6 +196,16 @@ export default function GamePage() {
         setResetting(true);
         await fetch(`/api/rooms/${code}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reset', playerId }) });
         setWinner(null); setEliminated(false); router.push(`/room/${code}/lobby`);
+    };
+
+    const [quitting, setQuitting] = useState(false);
+    const handleQuit = async () => {
+        setQuitting(true);
+        await fetch(`/api/rooms/${code}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'leave', playerId }),
+        });
+        router.push('/');
     };
 
     if (!room) return (
@@ -239,9 +256,11 @@ export default function GamePage() {
                 <div className="mb-4"><Soundboard onPlay={handleSound} active={activeSound} /></div>
                 <div className="space-y-2">
                     <button className="btn-primary" onClick={handleReset} disabled={resetting}>
-                        {resetting ? '⏳ กำลังกลับ...' : '🔄 เล่นรอบใหม่'}
+                        {resetting ? '⏳ กำลังกลับ...' : '🔄 เล่นรอบใหม่ (กลับล็อบบี้)'}
                     </button>
-                    <button className="btn-secondary" onClick={() => router.push('/')}>🏠 กลับหน้าแรก</button>
+                    <button className="btn-secondary" onClick={handleQuit} disabled={quitting}>
+                        {quitting ? '⏳ ออกจากห้อง...' : '🚪 ออกจากห้อง (กลับหน้าแรก)'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -278,6 +297,14 @@ export default function GamePage() {
                     </div>
                 </div>
                 <Soundboard onPlay={handleSound} active={activeSound} />
+                <div className="mt-6 space-y-2">
+                    <button className="btn-secondary" style={{ padding: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }} onClick={handleReset} disabled={resetting}>
+                        {resetting ? '⏳ กลับล็อบบี้...' : '🏠 กลับไปรอที่ล็อบบี้ (ทุกคนจะถูกพากลับและจบเกมนี้)'}
+                    </button>
+                    <button className="btn-secondary" style={{ padding: '0.75rem', fontSize: '0.9rem', color: 'var(--pink-deep)' }} onClick={handleQuit} disabled={quitting}>
+                        {quitting ? '⏳ ตัดการเชื่อมต่อ...' : '🚪 ออกจากห้องไปเลย (กลับหน้าแรก)'}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -345,6 +372,16 @@ export default function GamePage() {
                 {/* Soundboard */}
                 <div className="px-5 pt-5 pb-4">
                     <Soundboard onPlay={handleSound} active={activeSound} />
+                </div>
+
+                {/* Actions */}
+                <div className="px-5 pb-6 space-y-2">
+                    <button className="btn-secondary" style={{ padding: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'var(--bg-surface)' }} onClick={handleReset} disabled={resetting}>
+                        {resetting ? '⏳ กลับล็อบบี้...' : '🏠 จบรอบนี้และพาทุกคนกลับล็อบบี้'}
+                    </button>
+                    <button className="btn-secondary" style={{ padding: '0.75rem', fontSize: '0.9rem', color: 'var(--pink-deep)', background: 'var(--bg-surface)' }} onClick={handleQuit} disabled={quitting}>
+                        {quitting ? '⏳ ตัดการเชื่อมต่อ...' : '🚪 ทิ้งเพื่อนแล้วออกจากห้อง (กลับหน้าแรก)'}
+                    </button>
                 </div>
             </div>
 

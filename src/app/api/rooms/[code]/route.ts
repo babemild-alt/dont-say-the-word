@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRoom, startGame, eliminatePlayer, updateRoom } from '@/lib/roomStore';
+import { getRoom, startGame, eliminatePlayer, updateRoom, removePlayer } from '@/lib/roomStore';
 import { assignWords } from '@/lib/wordList';
 import Ably from 'ably';
 
@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
     return NextResponse.json({ room });
 }
 
-// POST actions: start | catch | honk | sound | reset
+// POST actions: start | catch | honk | sound | reset | leave
 export async function POST(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
     const { code } = await params;
     const body = await req.json();
@@ -82,6 +82,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
         }));
         await channel.publish('room-reset', { room: updatedRoom });
         return NextResponse.json({ room: updatedRoom });
+    }
+
+    if (action === 'leave') {
+        const updatedRoom = await removePlayer(code, playerId);
+        if (!updatedRoom) {
+            // Room was deleted because it's empty
+            await channel.publish('room-closed', { reason: 'empty' });
+            return NextResponse.json({ ok: true, deleted: true });
+        }
+
+        // Notify others that player left
+        await channel.publish('player-left', { room: updatedRoom, leftId: playerId });
+
+        // Check win condition if in game
+        if (updatedRoom.status === 'playing') {
+            const activePlayers = Object.values(updatedRoom.players).filter(p => !p.isEliminated);
+            if (activePlayers.length <= 1) {
+                await channel.publish('player-caught', {
+                    room: updatedRoom,
+                    targetId: null,
+                    catcherId: null,
+                    gameEnded: true,
+                    winner: activePlayers[0]?.id || null,
+                });
+            }
+        }
+
+        return NextResponse.json({ ok: true, room: updatedRoom });
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

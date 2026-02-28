@@ -102,3 +102,35 @@ export async function startGame(code: string, words: Record<string, string>): Pr
         words,
     }));
 }
+
+export async function removePlayer(code: string, playerId: string): Promise<Room | null> {
+    const room = await getRoom(code);
+    if (!room || !room.players[playerId]) return room;
+
+    // Create new players object without the leaving player
+    const newPlayers = { ...room.players };
+    delete newPlayers[playerId];
+
+    // If no players left, just delete the room
+    if (Object.keys(newPlayers).length === 0) {
+        await deleteRoom(code);
+        return null;
+    }
+
+    // If host left, assign a new host
+    let newHostId = room.hostId;
+    if (playerId === room.hostId) {
+        newHostId = Object.keys(newPlayers)[0];
+        newPlayers[newHostId].isHost = true;
+    }
+
+    return updateRoom(code, (r) => ({
+        ...r,
+        hostId: newHostId,
+        players: newPlayers,
+    }));
+}
+
+export async function deleteRoom(code: string): Promise<void> {
+    await getRedis().del(roomKey(code));
+}
